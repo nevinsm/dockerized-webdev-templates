@@ -1,0 +1,69 @@
+function download-magento () {
+    rm $(pwd)/app/index.php
+
+    tty=
+    tty -s && tty=--tty
+    docker run \
+        $tty \
+        --interactive \
+        --rm \
+        --volume $(pwd)/app:/app \
+        --user $(id -u):$(id -g) \
+        composer create-project --ignore-platform-reqs --repository=https://repo.magento.com/ magento/project-community-edition .
+}
+
+function install-magento () {
+    # Site info
+    echo "URL Without http(s):// or trailing /"
+    read url
+
+    # User info
+    echo "Admin Firstname:"
+    read fname
+
+    echo "Admin Lastname:"
+    read lname
+
+    echo "Admin Username:"
+    read username
+
+    echo "Admin Email:"
+    read email
+
+    echo "Admin Password:"
+    read password
+
+    # Database info
+    echo "Database Name"
+    read dbname
+
+    echo "Database User"
+    read dbuser
+
+    echo "Database Password"
+    read dbpass
+
+    # Rabbitmq info
+    echo "Rabbitmq User"
+    read rbmquser
+
+    echo "Rabbitmq Password"
+    read rbmqpass
+
+
+    docker-compose exec php su $(id -u -n) -c "php /app/bin/magento setup:install \
+        --base-url=http://$url/ \
+        --base-url-secure=https://$url/ \
+        --use-secure-admin=1 --use-secure=1 --use-rewrites=1 \
+        --backend-frontname=admin \
+        --db-host=mysql --db-name=$dbname --db-user=$dbuser --db-password=$dbpass \
+        --admin-firstname=$fname --admin-lastname=$lname --admin-email=$email \
+        --admin-user=$username --admin-password=$password --language=en_US \
+        --currency=USD --timezone=America/New_York --cleanup-database \
+        --amqp-host=rabbitmq --amqp-port=5672 \
+        --amqp-user=$rbmquser --amqp-password=$rbmqpass"
+}
+
+php () {
+    docker-compose exec php su $(id -u -n) -c "cd /app; php $*"
+}

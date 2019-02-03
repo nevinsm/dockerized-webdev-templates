@@ -1,0 +1,79 @@
+version: '3'
+
+services:
+  apache:
+    image: httpd:2.4
+    expose:
+      - 80
+    environment:
+      VIRTUAL_HOST: something.dev.localhost
+      CERT_NAME: server
+    volumes:
+      - ./app:/app
+      - ./httpd.conf:/usr/local/apache2/conf/httpd.conf
+    networks:
+      - app
+      - proxy
+
+  php:
+    build: ./php-fpm
+    expose:
+      - 9000
+    volumes:
+      - ./app:/app
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+      - /etc/shadow:/etc/shadow:ro
+    networks:
+      - app
+      - mail
+
+  # cron:
+  #   image: nevinsm/php-cron:7.2
+  #   volumes:
+  #     - ./app:/app
+  #     - ./cron:/var/spool/cron/crontabs/youruser:ro
+  #     - /etc/passwd:/etc/passwd:ro
+  #     - /etc/group:/etc/group:ro
+  #     - /etc/shadow:/etc/shadow:ro
+  #   networks:
+  #     - app
+  #     - mail
+
+  # redis:
+  #   image: redis:5.0
+  #   expose:
+  #     - 6379
+  #   networks:
+  #     - app
+
+  mysql:
+    image: mysql:5.7
+    expose:
+      - 3306
+    networks:
+      - app
+      - phpmyadmin
+    volumes:
+      - database_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: changeme
+      MYSQL_DATABASE: changeme
+      MYSQL_USER: changeme
+      MYSQL_PASSWORD: 'changeme'
+
+networks:
+  app:
+  phpmyadmin:
+    external:
+      name: phpmyadmin
+  proxy:
+    external:
+      name: proxy
+  mail:
+    external:
+      name: mail
+
+volumes:
+  database_data:
+    driver: local
